@@ -1,3 +1,7 @@
+
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import os
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 import pdfplumber, uuid
@@ -90,3 +94,14 @@ async def analyze(file: UploadFile = File(...), domain: str = Form(...)):
 @app.get("/results/{session_id}")
 def get_result(session_id: str):
     return store.get(session_id, {"error": "not found"})
+
+# Serve React frontend
+if os.path.exists("static"):
+    app.mount("/static", StaticFiles(directory="static/static"), name="static")
+
+    @app.get("/{full_path:path}")
+    async def serve_frontend(full_path: str):
+        index = "static/index.html"
+        if os.path.exists(f"static/{full_path}") and full_path != "":
+            return FileResponse(f"static/{full_path}")
+        return FileResponse(index)
