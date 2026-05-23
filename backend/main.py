@@ -1,10 +1,8 @@
-
-from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-import os
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
-import pdfplumber, uuid
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+import pdfplumber, uuid, os
 from io import BytesIO
 
 app = FastAPI()
@@ -32,43 +30,54 @@ DOMAIN_KEYWORDS = {
     "frontend": ["react","vue","angular","javascript","typescript","html","css","sass","webpack","vite","tailwind","bootstrap","redux","nextjs","responsive design","figma","rest api","graphql"],
     "backend": ["nodejs","python","java","golang","rust","express","django","fastapi","spring","postgresql","mysql","mongodb","redis","kafka","rabbitmq","rest api","graphql","microservices"],
     "golang": ["golang","go","goroutine","channel","gin","echo","grpc","protobuf","docker","kubernetes","microservices","rest api","postgresql","redis","concurrency","testing"],
-    "rust": ["rust","cargo","ownership","borrowing","tokio","actix","wasm","systems programming","concurrency","memory safety","cli","embedded","webassembly"],
     "ml": ["python","tensorflow","pytorch","scikit-learn","keras","pandas","numpy","machine learning","deep learning","nlp","computer vision","data science","jupyter","matplotlib","statistics"],
     "database": ["sql","postgresql","mysql","mongodb","redis","elasticsearch","cassandra","oracle","sqlite","database design","query optimization","indexing","replication","backup","data modeling"],
-    "embedded": ["c","c++","arduino","raspberry pi","rtos","microcontroller","firmware","embedded linux","i2c","spi","uart","iot","sensors","pcb","arm","fpga"],
     "gamedev": ["unity","unreal engine","c#","c++","3d modeling","blender","game design","physics engine","shader","opengl","vulkan","directx","animation","multiplayer","steam sdk"],
     "qa": ["selenium","cypress","jest","pytest","junit","postman","jmeter","test automation","manual testing","api testing","load testing","bug tracking","jira","agile","bdd","tdd"],
     "product": ["product management","roadmap","user story","agile","scrum","jira","figma","data analysis","stakeholder","okr","go to market","wireframe","a/b testing","kpi","backlog"],
-    "data": ["sql","python","excel","tableau","powerbi","pandas","statistics","etl","data pipeline","spark","hadoop","airflow","data warehouse","snowflake","dbt","looker","data modeling"]
+    "data": ["sql","python","excel","tableau","powerbi","pandas","statistics","etl","data pipeline","spark","hadoop","airflow","data warehouse","snowflake","dbt","looker","data modeling"],
+    "embedded": ["c","c++","arduino","raspberry pi","rtos","microcontroller","firmware","embedded linux","i2c","spi","uart","iot","sensors","pcb","arm","fpga"],
+    "rust": ["rust","cargo","ownership","borrowing","tokio","actix","wasm","systems programming","concurrency","memory safety","cli","embedded","webassembly"],
 }
 
-def get_keywords_for_domain(domain_query):
+def get_keywords(domain_query):
     query = domain_query.lower().strip()
     for key, keywords in DOMAIN_KEYWORDS.items():
         if key in query or query in key:
-            return keywords, key
-    general = [w for w in query.split() if len(w) > 2]
-    auto_keywords = general + [
-        "python","javascript","sql","git","linux","docker",
-        "communication","teamwork","problem solving","agile","rest api"
-    ]
-    return list(set(auto_keywords)), query
+            return keywords
+    words = [w for w in query.split() if len(w) > 2]
+    return list(set(words + ["python","javascript","sql","git","linux","docker","communication","teamwork","agile"]))
 
-@app.get("/")
-def root():
+@app.get("/api/health")
+def health():
     return {"status": "Resume Analyzer API running"}
 
-@app.get("/domains")
+@app.get("/api/domains")
 def get_domains():
     return [
-        {"id": "devops", "label": "DevOps / Cloud", "emoji": "⚙️"},
-        {"id": "fullstack", "label": "Full Stack Web Dev", "emoji": "🌐"},
-        {"id": "datascience", "label": "Data Science / AI", "emoji": "🤖"},
-        {"id": "cybersecurity", "label": "Cybersecurity", "emoji": "🔐"},
-        {"id": "mobile", "label": "Mobile Dev", "emoji": "📱"}
+        {"id":"devops","label":"DevOps / Cloud","emoji":"⚙️"},
+        {"id":"fullstack","label":"Full Stack Web Dev","emoji":"🌐"},
+        {"id":"datascience","label":"Data Science / AI","emoji":"🤖"},
+        {"id":"cybersecurity","label":"Cybersecurity","emoji":"🔐"},
+        {"id":"mobile","label":"Mobile Dev","emoji":"📱"},
+        {"id":"java","label":"Java Developer","emoji":"☕"},
+        {"id":"uiux","label":"UI/UX Designer","emoji":"🎨"},
+        {"id":"blockchain","label":"Blockchain","emoji":"⛓️"},
+        {"id":"cloud","label":"Cloud Engineer","emoji":"☁️"},
+        {"id":"gamedev","label":"Game Developer","emoji":"🎮"},
+        {"id":"qa","label":"QA Testing","emoji":"🧪"},
+        {"id":"data","label":"Data Analytics","emoji":"📊"},
+        {"id":"rust","label":"Rust Developer","emoji":"🦀"},
+        {"id":"golang","label":"Golang Developer","emoji":"🐹"},
+        {"id":"ml","label":"ML Engineer","emoji":"🧠"},
+        {"id":"backend","label":"Backend Developer","emoji":"🖥️"},
+        {"id":"frontend","label":"Frontend Developer","emoji":"🖌️"},
+        {"id":"database","label":"Database Admin","emoji":"🗄️"},
+        {"id":"embedded","label":"Embedded Systems","emoji":"📡"},
+        {"id":"product","label":"Product Manager","emoji":"📦"},
     ]
 
-@app.post("/analyze")
+@app.post("/api/analyze")
 async def analyze(file: UploadFile = File(...), domain: str = Form(...)):
     content = await file.read()
     try:
@@ -77,7 +86,7 @@ async def analyze(file: UploadFile = File(...), domain: str = Form(...)):
     except Exception:
         text = ""
     text_lower = text.lower()
-    keywords, matched_domain = get_keywords_for_domain(domain)
+    keywords = get_keywords(domain)
     found = [k for k in keywords if k in text_lower]
     score = round(len(found) / len(keywords) * 100) if keywords else 0
     session = str(uuid.uuid4())
@@ -91,17 +100,19 @@ async def analyze(file: UploadFile = File(...), domain: str = Form(...)):
     }
     return store[session]
 
-@app.get("/results/{session_id}")
+@app.get("/api/results/{session_id}")
 def get_result(session_id: str):
     return store.get(session_id, {"error": "not found"})
 
 # Serve React frontend
 if os.path.exists("static"):
-    app.mount("/static", StaticFiles(directory="static/static"), name="static")
+    app.mount("/static", StaticFiles(directory="static/static"), name="static-assets")
 
     @app.get("/{full_path:path}")
     async def serve_frontend(full_path: str):
-        index = "static/index.html"
-        if os.path.exists(f"static/{full_path}") and full_path != "":
-            return FileResponse(f"static/{full_path}")
-        return FileResponse(index)
+        if full_path.startswith("api/"):
+            return {"error": "not found"}
+        file_path = f"static/{full_path}"
+        if os.path.exists(file_path) and os.path.isfile(file_path):
+            return FileResponse(file_path)
+        return FileResponse("static/index.html")
