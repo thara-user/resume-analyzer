@@ -11,7 +11,7 @@ export default function App() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetch("/domains").then(r => r.json()).then(setDomains);
+    fetch("/api/domains").then(r => r.json()).then(setDomains);
   }, []);
 
   async function analyze(file) {
@@ -22,7 +22,7 @@ export default function App() {
       const form = new FormData();
       form.append("file", file);
       form.append("domain", domain.id);
-      const res = await fetch("/analyze", { method: "POST", body: form });
+      const res = await fetch("/api/analyze", { method: "POST", body: form });
       const data = await res.json();
       setResult(data);
     } catch(e) {
