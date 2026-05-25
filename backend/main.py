@@ -168,12 +168,21 @@ def get_result(session_id: str):
 
 if os.path.exists("static"):
     app.mount("/static", StaticFiles(directory="static/static"), name="static-assets")
+    app.mount("/favicon.ico", StaticFiles(directory="static"), name="favicon")
 
-    @app.get("/{full_path:path}")
-    async def serve_frontend(full_path: str):
-        if full_path.startswith("api/"):
-            return {"error": "not found"}
-        file_path = f"static/{full_path}"
-        if os.path.exists(file_path) and os.path.isfile(file_path):
-            return FileResponse(file_path)
+@app.get("/")
+async def serve_index():
+    if os.path.exists("static/index.html"):
         return FileResponse("static/index.html")
+    return {"status": "Resume Analyzer API running"}
+
+@app.get("/{full_path:path}")
+async def serve_frontend(full_path: str):
+    if full_path.startswith("api/"):
+        return {"error": "not found"}
+    file_path = f"static/{full_path}"
+    if os.path.exists(file_path) and os.path.isfile(file_path):
+        return FileResponse(file_path)
+    if os.path.exists("static/index.html"):
+        return FileResponse("static/index.html")
+    return {"error": "not found"}
