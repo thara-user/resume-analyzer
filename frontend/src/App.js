@@ -3,7 +3,7 @@ import DomainPicker from "./components/DomainPicker";
 import Analyzer from "./components/Analyzer";
 import Result from "./components/Result";
 
-const API = "https://resume-analyzer-sr56.onrender.com";
+const API = "";
 
 export default function App() {
   const [domain, setDomain] = useState(null);
