@@ -87,8 +87,7 @@ def calculate_ats_score(text):
     word_count = len(text.split())
     if 300 <= word_count <= 1000: format_score += 8
     elif word_count > 100: format_score += 4
-    lines = text.split('
-')
+    lines = text.split('\n')
     non_empty = [l for l in lines if l.strip()]
     if len(non_empty) > 10: format_score += 4
     if re.search(r'summary|objective|profile|about', text_lower): format_score += 3
