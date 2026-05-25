@@ -1,3 +1,4 @@
+// v2.0
 import { useState } from "react";
 import DomainPicker from "./components/DomainPicker";
 import Analyzer from "./components/Analyzer";
