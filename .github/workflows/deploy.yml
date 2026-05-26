@@ -16,14 +16,14 @@ jobs:
         run: |
           cd backend
           pip install fastapi uvicorn pdfplumber python-multipart
-          python3 -c "import main; print('✅ Backend OK')"
+          python3 -c "import main; print('Backend OK')"
 
   deploy-backend:
     needs: test-backend
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Deploy to EC2 via SSH
+      - name: Deploy to EC2
         uses: appleboy/ssh-action@v1.0.3
         with:
           host:     ${{ secrets.EC2_HOST }}
@@ -31,9 +31,10 @@ jobs:
           key:      ${{ secrets.EC2_SSH_KEY }}
           port:     22
           script: |
-            cd /home/ubuntu/resume-analyzer && git pull origin main
+            cd /home/ubuntu/resume-analyzer
+            git pull origin main
             sudo systemctl restart resume-api
-            echo "✅ Backend deployed!"
+            echo "Backend deployed!"
 
   deploy-frontend:
     needs: test-backend
@@ -47,7 +48,7 @@ jobs:
         run: |
           cd frontend
           npm install
-          REACT_APP_API_URL=http://${{ secrets.EC2_HOST }}:8000 npm run build
+          REACT_APP_API_URL=http://65.0.4.113:8000 npm run build
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -57,10 +58,10 @@ jobs:
       - name: Deploy to S3
         run: |
           aws s3 sync frontend/build/ s3://resume-analyzer-frontend-203374879162 --delete
-          echo "✅ Frontend deployed!"
+          echo "Frontend deployed!"
       - name: Invalidate CloudFront
         run: |
           aws cloudfront create-invalidation \
             --distribution-id ${{ secrets.CLOUDFRONT_ID }} \
             --paths "/*"
-          echo "✅ CloudFront cleared!"
+          echo "CloudFront cleared!"
