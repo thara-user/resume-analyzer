@@ -1,0 +1,66 @@
+name: Deploy Resume Analyzer
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  test-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Test backend
+        run: |
+          cd backend
+          pip install fastapi uvicorn pdfplumber python-multipart
+          python3 -c "import main; print('✅ Backend OK')"
+
+  deploy-backend:
+    needs: test-backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v0.1.5
+        with:
+          host:     ${{ secrets.EC2_HOST }}
+          username: ubuntu
+          key:      ${{ secrets.EC2_SSH_KEY }}
+          script: |
+            cd /home/ubuntu/resume-analyzer
+            git pull origin main
+            sudo systemctl restart resume-api
+            echo "✅ Backend deployed!"
+
+  deploy-frontend:
+    needs: test-backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-node@v3
+        with:
+          node-version: 18
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm install
+          REACT_APP_API_URL=http://${{ secrets.EC2_HOST }}:8000 npm run build
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region:            ap-south-1
+      - name: Deploy to S3
+        run: |
+          aws s3 sync frontend/build/ s3://${{ secrets.S3_FRONTEND_BUCKET }} --delete
+          echo "✅ Frontend deployed to S3!"
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id ${{ secrets.CLOUDFRONT_ID }} \
+            --paths "/*"
+          echo "✅ CloudFront cache cleared!"
