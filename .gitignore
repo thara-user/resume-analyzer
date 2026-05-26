@@ -1,5 +1,17 @@
+# Terraform
+infrastructure/terraform/.terraform/
+infrastructure/terraform/*.tfstate
+infrastructure/terraform/*.tfstate.backup
+infrastructure/terraform/.terraform.lock.hcl
+
+# Python
 backend/venv/
 backend/__pycache__/
-frontend/node_modules/
 *.pyc
-*.pyo
+
+# Node
+frontend/node_modules/
+
+# Environment
+.env
+*.env
