@@ -8,8 +8,8 @@ jobs:
   test-backend:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
       - name: Test backend
@@ -22,16 +22,16 @@ jobs:
     needs: test-backend
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - name: Deploy to EC2
-        uses: appleboy/ssh-action@v0.1.5
+      - uses: actions/checkout@v4
+      - name: Deploy to EC2 via SSH
+        uses: appleboy/ssh-action@v1.0.3
         with:
           host:     ${{ secrets.EC2_HOST }}
           username: ubuntu
           key:      ${{ secrets.EC2_SSH_KEY }}
+          port:     22
           script: |
-            cd /home/ubuntu/resume-analyzer
-            git pull origin main
+            cd /home/ubuntu/resume-analyzer && git pull origin main
             sudo systemctl restart resume-api
             echo "✅ Backend deployed!"
 
@@ -39,8 +39,8 @@ jobs:
     needs: test-backend
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions/setup-node@v3
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
         with:
           node-version: 18
       - name: Build frontend
@@ -49,7 +49,7 @@ jobs:
           npm install
           REACT_APP_API_URL=http://${{ secrets.EC2_HOST }}:8000 npm run build
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v2
+        uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -57,10 +57,10 @@ jobs:
       - name: Deploy to S3
         run: |
           aws s3 sync frontend/build/ s3://${{ secrets.S3_FRONTEND_BUCKET }} --delete
-          echo "✅ Frontend deployed to S3!"
-      - name: Invalidate CloudFront cache
+          echo "✅ Frontend deployed!"
+      - name: Invalidate CloudFront
         run: |
           aws cloudfront create-invalidation \
             --distribution-id ${{ secrets.CLOUDFRONT_ID }} \
             --paths "/*"
-          echo "✅ CloudFront cache cleared!"
+          echo "✅ CloudFront cleared!"
