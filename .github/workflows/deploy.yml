@@ -56,7 +56,7 @@ jobs:
           aws-region:            ap-south-1
       - name: Deploy to S3
         run: |
-          aws s3 sync frontend/build/ s3://${{ secrets.S3_FRONTEND_BUCKET }} --delete
+          aws s3 sync frontend/build/ s3://resume-analyzer-frontend-203374879162 --delete
           echo "✅ Frontend deployed!"
       - name: Invalidate CloudFront
         run: |
